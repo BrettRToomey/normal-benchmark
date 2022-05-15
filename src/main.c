@@ -117,25 +117,41 @@ void run_benchmarks( f64 *samples, i32 sample_count )
             sum += cycles_per_sample;
         }
 
-    #if 0
-        u64 cpu_clock_speed = 3200000000; /* M1 clock speed is 3,2Ghz */
-    #else
-        u64 cpu_clock_speed = 2400000000; /* My i9 clock speed is 2,4Ghz */
-    #endif
 
         f64 avg_cycles_per_sample = sum / BENCH_RESULT_COUNT;
+
+    #if 0
+        // TODO(BRETT): sample clockspeed here
+        // u64 cpu_clock_speed = 3200000000; /* M1 clock speed is 3,2Ghz */
+        // u64 cpu_clock_speed = 2400000000; /* My i9 clock speed is 2,4Ghz */
         f64 samples_per_second = cpu_clock_speed / avg_cycles_per_sample;
         f64 bytes_per_second = samples_per_second * sizeof(*samples);
+    #endif
+
+        f64 variance = 0;
+
+        {
+            f64 avg = avg_cycles_per_sample;
+
+            for (int i = 0; i < BENCH_RESULT_COUNT; i++) {
+                f64 deviation = pow(entry->results[i] - avg, 2.0);
+                variance += deviation;
+            }
+
+            variance /= BENCH_RESULT_COUNT;
+        }
+
+        f64 std_deviation = sqrt(variance);
 
         printf("%s:\n"
-                "  Average cycles per sample: %.2lf, %.2lf/bps\n",
-                entry->name, avg_cycles_per_sample, bytes_per_second);
+                "  Average cycles per sample: %.2lf ± %.2lf\n",
+                entry->name, avg_cycles_per_sample, std_deviation);
     }
 }
 
 int main( void )
 {
-    i32 sample_count = 10e6;
+    i32 sample_count = 1e6;
     f64 *sample_buffer = aligned_alloc(32, sample_count * sizeof(*sample_buffer));
 
     run_benchmarks(sample_buffer, sample_count);

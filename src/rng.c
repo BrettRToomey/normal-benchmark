@@ -1,4 +1,4 @@
-// The RNG used is Xorshift128++
+// The RNG used is Xorshift128+
 
 typedef struct Rng {
     u64 s0;
