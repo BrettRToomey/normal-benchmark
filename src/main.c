@@ -29,6 +29,7 @@ typedef enum Flags {
 	Flags_x86  = (1 << 1),
 } Flags;
 
+#define BENCH_WARMUP_COUNT 10
 #define BENCH_RESULT_COUNT 10
 
 typedef struct Benchmark_Entry {
@@ -89,20 +90,18 @@ Benchmark_Entry entries[] = {
 	{ "Boxmuller",          bench_boxmuller,          Flags_ARM | Flags_x86 },
 };
 
-void warmup( f64 *samples, i32 sample_count )
-{
-	for (int i = 0; i < 100; i++) {
-		bench_memset(samples, sample_count);
-	}
-}
-
 void run_benchmarks( f64 *samples, i32 sample_count )
 {
 	i32 count = sizeof(entries) / sizeof(entries[0]);
 	for (i32 i = 0; i < count; i++) {
 		Benchmark_Entry *entry = entries + i;
 
+		for (int j = 0; j < BENCH_WARMUP_COUNT; j++) {
+			entry->benchmark(samples, sample_count);
+		}
+
 		f64 sum = 0.0;
+		
 		for (int j = 0; j < BENCH_RESULT_COUNT; j++) {
 			u64 cycles_start = get_cycles();
 			entry->benchmark(samples, sample_count);
@@ -115,7 +114,12 @@ void run_benchmarks( f64 *samples, i32 sample_count )
 			sum += cycles_per_sample;
 		}
 
+	#if 0
 		u64 cpu_clock_speed = 3200000000; /* M1 clock speed is 3,2Ghz */
+	#else
+		u64 cpu_clock_speed = 2400000000; /* My i9 clock speed is 2,4Ghz */
+	#endif
+
 		f64 avg_cycles_per_sample = sum / BENCH_RESULT_COUNT;
 		f64 samples_per_second = cpu_clock_speed / avg_cycles_per_sample;
 		f64 bytes_per_second = samples_per_second * sizeof(*samples);
@@ -130,8 +134,7 @@ int main( void )
 {
 	i32 sample_count = 10e6;
 	f64 *sample_buffer = aligned_alloc(32, sample_count * sizeof(*sample_buffer));
-	
-	warmup(sample_buffer, sample_count);
+
 	run_benchmarks(sample_buffer, sample_count);
 
 	return 0;
