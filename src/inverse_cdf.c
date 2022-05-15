@@ -29,7 +29,7 @@ BENCHMARK(bench_inverse_normal_cdf)
             r = x*(((a[3]*r + a[2])*r + a[1])*r + a[0])
                 / ((((b[3]*r + b[2])*r + b[1])*r + b[0])*r + 1.0);
 
-            results[count] = sup ? -r: r;
+            results[i] = sup ? -r: r;
             continue;
         }
 
@@ -37,6 +37,6 @@ BENCHMARK(bench_inverse_normal_cdf)
         r = log( -log(r) );
         r = c[0] + r*(c[1] + r*(c[2] + r*(c[3] + r*(c[4] + r*(c[5] + r*(c[6] + r*(c[7] + r*c[8])))))));
 
-        results[count] = sup? r: -r;
+        results[i] = sup? r: -r;
     }
 }

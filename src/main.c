@@ -64,7 +64,8 @@ BENCHMARK(bench_rand_u64x4)
 	Rng_x4 rng = new_rng_x4();
 
 	for (int i = 0; i < count; i += 4) {
-		u64x4 *p = (u64x4 *) results + i;
+
+		u64x4 *p = (u64x4 *) (results + i);
 		u64x4 u = rand_u64x4(&rng);
 		_mm256_store_si256(p, u);
 	}
@@ -87,6 +88,13 @@ Benchmark_Entry entries[] = {
 	{ "Inverse Normal CDF", bench_inverse_normal_cdf, Flags_ARM | Flags_x86 },
 	{ "Boxmuller",          bench_boxmuller,          Flags_ARM | Flags_x86 },
 };
+
+void warmup( f64 *samples, i32 sample_count )
+{
+	for (int i = 0; i < 100; i++) {
+		bench_memset(samples, sample_count);
+	}
+}
 
 void run_benchmarks( f64 *samples, i32 sample_count )
 {
@@ -120,8 +128,11 @@ void run_benchmarks( f64 *samples, i32 sample_count )
 
 int main( void )
 {
-	i32 sample_count = 1e6;
+	i32 sample_count = 10e6;
 	f64 *sample_buffer = aligned_alloc(32, sample_count * sizeof(*sample_buffer));
+	
+	warmup(sample_buffer, sample_count);
 	run_benchmarks(sample_buffer, sample_count);
+
 	return 0;
 }
