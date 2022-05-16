@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <math.h>
 #include <string.h>
+#include <float.h>
 
 #ifdef _WIN32
 #include <intrin.h>
@@ -82,17 +83,70 @@ BENCHMARK(bench_rand_f64)
     }
 }
 
+BENCHMARK(bench_rand_f64x4)
+{
+    Rng_x4 rng = new_rng_x4();
+
+    for (int i = 0; i < count; i += 4) {
+        f64 *p = results + i;
+        f64x4 u = rand_f64x4(&rng);
+        _mm256_store_pd(p, u);
+    }
+}
+
 Benchmark_Entry entries[] = {
     { "Memset",                    bench_memset,                    Flags_ARM | Flags_x86 },
     { "Rand u64",                  bench_rand_u64,                  Flags_ARM | Flags_x86 },
     { "Rand u64x4",                bench_rand_u64x4,                            Flags_x86 },
     { "Rand f64",                  bench_rand_f64,                  Flags_ARM | Flags_x86 },
+    { "Rand f64x4",                bench_rand_f64x4,                            Flags_x86 },
     { "Inverse Normal CDF",        bench_inverse_normal_cdf,        Flags_ARM | Flags_x86 },
     { "Boxmuller",                 bench_boxmuller,                 Flags_ARM | Flags_x86 },
     { "Irwin Hall (12 draws)",     irwin_hall_distribution_12,      Flags_ARM | Flags_x86 },
-    { "Irwin Hall (12 draws) AVX", irwin_hall_distribution_12_avx2, Flags_ARM | Flags_x86 },
+    { "Irwin Hall (12 draws) AVX", irwin_hall_distribution_12_avx2,             Flags_x86 },
     { "Irwin Hall (16 draws)",     irwin_hall_distribution_16,      Flags_ARM | Flags_x86 },
 };
+
+void emit_entry_results( FILE *file, Benchmark_Entry *entry )
+{
+    f64 sum = 0;
+    f64 min = DBL_MAX;
+    f64 max = -DBL_MAX;
+
+    for (int i = 0; i < BENCH_RESULT_COUNT; i++) {
+        f64 cycles = entry->results[i];
+        if (cycles < min) min = cycles;
+        if (cycles > max) max = cycles;
+        sum += cycles;
+    }
+
+    f64 average = sum / BENCH_RESULT_COUNT;
+    f64 variance = 0;
+    
+    for (int i = 0; i < BENCH_RESULT_COUNT; i++) {
+        f64 deviation = pow(entry->results[i] - average, 2.0);
+        variance += deviation;
+    }
+
+    variance /= BENCH_RESULT_COUNT;
+
+    f64 std_deviation = sqrt(variance);
+
+    fprintf(file,
+        "%s,%.2lf,%.2lf,%.2lf,%.2lf\n",
+        entry->name, average, min, max, std_deviation);
+}
+
+void emit_benchmark_results( FILE *file )
+{
+    fprintf(file, "algorithm,cycles,min,max,stddev\n");
+
+    i32 count = sizeof(entries) / sizeof(entries[0]);
+    for (i32 i = 0; i < count; i++) {
+        Benchmark_Entry *entry = entries + i;
+        emit_entry_results(file, entry);
+    }
+}
 
 void run_benchmarks( f64 *samples, i32 sample_count )
 {
@@ -103,8 +157,6 @@ void run_benchmarks( f64 *samples, i32 sample_count )
         for (int j = 0; j < BENCH_WARMUP_COUNT; j++) {
             entry->benchmark(samples, sample_count);
         }
-
-        f64 sum = 0.0;
         
         for (int j = 0; j < BENCH_RESULT_COUNT; j++) {
             u64 cycles_start = get_cycles();
@@ -115,40 +167,13 @@ void run_benchmarks( f64 *samples, i32 sample_count )
             f64 cycles_per_sample = cycles / (f64)(sample_count);
 
             entry->results[j] = cycles_per_sample;
-            sum += cycles_per_sample;
         }
-
-
-        f64 avg_cycles_per_sample = sum / BENCH_RESULT_COUNT;
-
-    #if 0
-        // TODO(BRETT): sample clockspeed here
-        // u64 cpu_clock_speed = 3200000000; /* M1 clock speed is 3,2Ghz */
-        // u64 cpu_clock_speed = 2400000000; /* My i9 clock speed is 2,4Ghz */
-        f64 samples_per_second = cpu_clock_speed / avg_cycles_per_sample;
-        f64 bytes_per_second = samples_per_second * sizeof(*samples);
-    #endif
-
-        f64 variance = 0;
-
-        {
-            f64 avg = avg_cycles_per_sample;
-
-            for (int i = 0; i < BENCH_RESULT_COUNT; i++) {
-                f64 deviation = pow(entry->results[i] - avg, 2.0);
-                variance += deviation;
-            }
-
-            variance /= BENCH_RESULT_COUNT;
-        }
-
-        f64 std_deviation = sqrt(variance);
-
-        printf("%s:\n"
-                "  Average cycles per sample: %.2lf ± %.2lf\n",
-                entry->name, avg_cycles_per_sample, std_deviation);
     }
+
+    emit_benchmark_results(stdout);
 }
+
+#include <assert.h>
 
 int main( void )
 {

@@ -13,16 +13,16 @@ typedef struct __attribute__((aligned(32))) Rng_x4 {
 Rng new_rng( void )
 {
     Rng result = {0};
-    result.s0 = 0xababab;
-    result.s1 = 0xbababa;
+    result.s0 = 0x462f64212d132fee;
+    result.s1 = 0x42a5adbcc0b99488;
     return result;
 }
 
 Rng_x4 new_rng_x4( void )
 {
     Rng_x4 result = {0};
-    result.s0 = _mm256_set1_epi64x(0xababab);
-    result.s1 = _mm256_set1_epi64x(0xbababa);
+    result.s0 = _mm256_set_epi64x(0x439ba8681dd32623, 0x220f59b20dc77641, 0xdc8d15e35704ef07, 0x462f64212d132fee);
+    result.s1 = _mm256_set_epi64x(0x5ad612f8f37e5165, 0x39c32e960221768a, 0xcdb9cfa193afd75e, 0x42a5adbcc0b99488);
     return result;
 }
 
