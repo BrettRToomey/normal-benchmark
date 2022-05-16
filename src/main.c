@@ -40,11 +40,12 @@ typedef struct Benchmark_Entry {
 } Benchmark_Entry;
 
 typedef __m256i u64x4;
+typedef __m256d f64x4;
 
 #include "rng.c"
 #include "inverse_cdf.c"
 #include "boxmuller.c"
-#include "central_limit.c"
+#include "irwin_hall_distribution.c"
 
 BENCHMARK(bench_memset)
 {
@@ -82,15 +83,15 @@ BENCHMARK(bench_rand_f64)
 }
 
 Benchmark_Entry entries[] = {
-    { "Memset",                   bench_memset,             Flags_ARM | Flags_x86 },
-    { "Rand u64",                 bench_rand_u64,           Flags_ARM | Flags_x86 },
-    { "Rand u64x4",               bench_rand_u64x4,                     Flags_x86 },
-    { "Rand f64",                 bench_rand_f64,           Flags_ARM | Flags_x86 },
-    { "Inverse Normal CDF",       bench_inverse_normal_cdf, Flags_ARM | Flags_x86 },
-    { "Boxmuller",                bench_boxmuller,          Flags_ARM | Flags_x86 },
-    { "Central Limit (4 draws)",  bench_central_limit_4,    Flags_ARM | Flags_x86 },
-    { "Central Limit (8 draws)",  bench_central_limit_8,    Flags_ARM | Flags_x86 },
-    { "Central Limit (16 draws)", bench_central_limit_16,   Flags_ARM | Flags_x86 },
+    { "Memset",                    bench_memset,                    Flags_ARM | Flags_x86 },
+    { "Rand u64",                  bench_rand_u64,                  Flags_ARM | Flags_x86 },
+    { "Rand u64x4",                bench_rand_u64x4,                            Flags_x86 },
+    { "Rand f64",                  bench_rand_f64,                  Flags_ARM | Flags_x86 },
+    { "Inverse Normal CDF",        bench_inverse_normal_cdf,        Flags_ARM | Flags_x86 },
+    { "Boxmuller",                 bench_boxmuller,                 Flags_ARM | Flags_x86 },
+    { "Irwin Hall (12 draws)",     irwin_hall_distribution_12,      Flags_ARM | Flags_x86 },
+    { "Irwin Hall (12 draws) AVX", irwin_hall_distribution_12_avx2, Flags_ARM | Flags_x86 },
+    { "Irwin Hall (16 draws)",     irwin_hall_distribution_16,      Flags_ARM | Flags_x86 },
 };
 
 void run_benchmarks( f64 *samples, i32 sample_count )

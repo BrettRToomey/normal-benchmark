@@ -63,6 +63,35 @@ u64x4 rand_u64x4( Rng_x4 *state )
     return r;
 }
 
+f64x4 rand_f64x4( Rng_x4 *state )
+{
+    u64x4 s0 = state->s0;
+    u64x4 s1 = state->s1;
+
+    u64x4 r = _mm256_add_epi64(s0, s1);
+
+    // s1 ^= s1 << 23;
+    s1 = _mm256_xor_si256(s1, _mm256_slli_epi64(s1, 23));
+
+    // s1 = s1 ^ s0 ^ (s1 >> 18) ^ (s0 >> 5);
+    s1 = _mm256_xor_si256(
+        s1,
+        _mm256_xor_si256(
+            s0,
+            _mm256_xor_si256(
+                _mm256_srli_epi64(s1, 18), 
+                _mm256_srli_epi64(s0, 5))));
+
+    state->s1 = s1;
+
+    f64x4 rf = _mm256_or_si256(
+        _mm256_set1_epi64x(UINT64_C(0x3FF) << 52),
+        _mm256_srli_epi64(r, 12));
+
+    rf = _mm256_sub_pd((f64x4)rf, _mm256_set1_pd(1.0));
+    return rf;
+}
+
 f64 rand_f64( Rng *state )
 {
     u64 s0 = state->s0;
