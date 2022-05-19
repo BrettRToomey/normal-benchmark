@@ -4,7 +4,7 @@ print(results)
 
 algorithms <- results$algorithm
 cycles <- results$cycles
-dev <- results$stddev
+dev <- results$cycles_stddev
 
 par(mar=c(5.1, 8, 4.1, 2.1))
 plot <- barplot(cycles, names=algorithms, cex.names=0.7, xlim=c(0, 65), xlab = "Cycles per sample", col="#c8a2c8", horiz=TRUE, las=1)
